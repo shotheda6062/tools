@@ -4,6 +4,20 @@
 LOG_FILE=""
 V_PATH=""
 
+
+# Function to detect the environment
+detect_environment() {
+    if [ -n "$WINDIR" ]; then
+        echo "windows"
+    elif [ "$(uname)" == "Darwin" ]; then
+        echo "macos"
+    elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
+        echo "linux"
+    else
+        echo "unknown"
+    fi
+}
+
 # Function to log messages
 log() {
     local message="$1"
@@ -19,7 +33,7 @@ command_exists() {
 
 # Function to validate required commands
 validate_commands() {
-    local required_commands=("jstack" "jcmd" "jmap" "top")
+    local required_commands=("jstack" "jcmd" "jmap" "ps")
     local missing_commands=()
 
     for cmd in "${required_commands[@]}"; do
@@ -37,11 +51,24 @@ validate_commands() {
     fi
 }
 
+
 # Function to validate PID
 validate_pid() {
-    if [[ ! "$1" =~ ^[0-9]+$ ]] || ! kill -0 "$1" 2>/dev/null; then
+    if [[ ! "$1" =~ ^[0-9]+$ ]]; then
         log "Invalid PID: $1"
         log "Invalid PID. Please enter a valid process ID."
+        return 1
+    fi
+
+    local env=$(detect_environment)
+    if [ "$env" == "windows" ]; then
+        powershell -Command "Get-Process -Id $1" > /dev/null 2>&1
+    else
+        kill -0 "$1" 2>/dev/null
+    fi
+
+    if [ $? -ne 0 ]; then
+        log "Process with PID $1 does not exist."
         return 1
     fi
     return 0
@@ -73,6 +100,42 @@ show_progress() {
     echo # Move to the next line after completion
 }
 
+# Function to get process information
+get_process_info() {
+    local pid=$1
+    local output_file=$2
+    local env=$(detect_environment)
+    
+    echo "Process Information:" >> "$output_file"
+    echo "=====================" >> "$output_file"
+    
+    case "$env" in
+        windows)
+            powershell -Command "Get-Process -Id $pid | Format-List *" >> "$output_file"
+            echo -e "\nThread Information:" >> "$output_file"
+            echo "====================" >> "$output_file"
+            powershell -Command "Get-Process -Id $pid | Select-Object -ExpandProperty Threads | Format-Table -AutoSize" >> "$output_file"
+            ;;
+        macos)
+            ps -p $pid -o pid,ppid,user,%cpu,%mem,vsz,rss,tt,stat,start,time,command >> "$output_file"
+            echo -e "\nThread Information:" >> "$output_file"
+            echo "====================" >> "$output_file"
+            ps -M -p $pid >> "$output_file"
+            ;;
+        linux)
+            ps -p $pid -f >> "$output_file"
+            echo -e "\nThread Information:" >> "$output_file"
+            echo "====================" >> "$output_file"
+            ps -T -p $pid >> "$output_file"
+            ;;
+        *)
+            echo "Unknown operating system. Limited information available." >> "$output_file"
+            ps -p $pid -f >> "$output_file"
+            ;;
+    esac
+}
+
+
 # Function to perform jstack dump
 jstack_dump() {
     local pid=$1
@@ -83,8 +146,8 @@ jstack_dump() {
         log "Collecting jstack dump $i of $loops"
         echo "Collecting jstack dump $i of $loops"
         jstack -l $pid > "$V_PATH/jstack_dump_$i.txt" 2>> "$LOG_FILE"
-        top -b -H -n 1 -p $pid >> "$V_PATH/jstack_top_output_$i.txt" 2>> "$LOG_FILE"
-        show_progress 3
+        get_process_info $pid "$V_PATH/jstack_process_info_$i.txt"
+        show_progress 5
     done
     log "Completed jstack dump"
     echo "jstack Dump Finish"
@@ -100,8 +163,8 @@ jcmd_dump() {
         log "Collecting jcmd dump $i of $loops"
         echo "Collecting jcmd dump $i of $loops"
         jcmd $pid Thread.print > "$V_PATH/jcmd_thread_dump_$i.txt" 2>> "$LOG_FILE"
-        top -b -H -n 1 -p $pid >> "$V_PATH/jcmd_top_output_$i.txt" 2>> "$LOG_FILE"
-        show_progress 3
+        get_process_info $pid "$V_PATH/jcmd_process_info_$i.txt"
+        show_progress 5
     done
     log "Completed jcmd dump"
     echo "jcmd Dump Finish"
@@ -176,7 +239,7 @@ setup_environment
 echo "Dumps will be saved in: $V_PATH"
 
 # Validate required commands
-#validate_commands
+validate_commands
 
 log "Starting Java Dump Utility"
 
