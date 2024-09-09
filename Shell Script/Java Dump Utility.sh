@@ -9,9 +9,9 @@ V_PATH=""
 detect_environment() {
     if [ -n "$WINDIR" ]; then
         echo "windows"
-    elif [ "$(uname)" == "Darwin" ]; then
+    elif [ "$(uname)" = "Darwin" ]; then
         echo "macos"
-    elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
+    elif [ "$(uname)" = "Linux" ]; then
         echo "linux"
     else
         echo "unknown"
@@ -33,20 +33,20 @@ command_exists() {
 
 # Function to validate required commands
 validate_commands() {
-    local required_commands=("jstack" "jcmd" "jmap" "ps")
-    local missing_commands=()
+	required_commands="jstack jcmd jmap ps"
+    missing_commands=""
 
-    for cmd in "${required_commands[@]}"; do
+    for cmd in $required_commands; do
         if ! command_exists "$cmd"; then
-            missing_commands+=("$cmd")
+            missing_commands="$missing_commands $cmd"
         fi
     done
 
-    if [ ${#missing_commands[@]} -ne 0 ]; then
-        log "Error: The following required commands are missing: ${missing_commands[*]}"
+    if [ -n "$missing_commands" ]; then
+        log "Error: The following required commands are missing:$missing_commands"
         log "Please ensure you have the required tools installed."
         log "Press any key to exit..."
-        read -n 1 -s -r -p ""
+        read dummy
         exit 1
     fi
 }
@@ -54,14 +54,15 @@ validate_commands() {
 
 # Function to validate PID
 validate_pid() {
-    if [[ ! "$1" =~ ^[0-9]+$ ]]; then
-        log "Invalid PID: $1"
-        log "Invalid PID. Please enter a valid process ID."
-        return 1
-    fi
+    case "$1" in
+        ''|*[!0-9]*) 
+            log "Invalid PID: $1"
+            log "Invalid PID. Please enter a valid process ID."
+            return 1 ;;
+    esac
 
     local env=$(detect_environment)
-    if [ "$env" == "windows" ]; then
+    if [ "$env" = "windows" ]; then
         powershell -Command "Get-Process -Id $1" > /dev/null 2>&1
     else
         kill -0 "$1" 2>/dev/null
@@ -85,7 +86,7 @@ setup_environment() {
 
 # Updated function to display progress in-line
 show_progress() {
-    local duration=$1
+	local duration=$1
     local sleep_duration=$(( duration / 5 ))
     local progress=0
 
@@ -93,7 +94,7 @@ show_progress() {
     while [ $progress -lt 5 ]
     do
         sleep $sleep_duration
-        ((progress++))
+        progress=$((progress + 1))
         percentage=$((progress * 20))
         printf "\rProgress: %d%%" $percentage
     done
@@ -294,6 +295,6 @@ echo "Dump process completed. Results are saved in $V_PATH"
 compress_dump
 
 echo "Press any key to exit..."
-read -n 1 -s -r -p ""
+read dummy ""
 log "Script execution finished"
 exit 0
