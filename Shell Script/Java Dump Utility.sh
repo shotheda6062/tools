@@ -123,6 +123,50 @@ jmap_dump() {
     echo "jmap Dump Finish"
 }
 
+
+# Function to compress the dump directory
+compress_dump() {
+    local os_type=$(uname -s)
+    local compressed_file
+
+    echo "Compressing dump directory..."
+    
+    case "$os_type" in
+        Linux*|Darwin*)
+            compressed_file="${V_PATH}.tar.gz"
+            tar -czf "$compressed_file" "$V_PATH"
+            ;;
+        MINGW*|CYGWIN*|MSYS*)
+            compressed_file="${V_PATH}.zip"
+            if command_exists zip; then
+                zip -r "$compressed_file" "$V_PATH"
+            else
+                echo "zip command not found. Using PowerShell to create zip file."
+                powershell.exe -nologo -noprofile -command \
+                    "& { Add-Type -A 'System.IO.Compression.FileSystem'; \
+                    [IO.Compression.ZipFile]::CreateFromDirectory('$V_PATH', '$compressed_file'); }"
+            fi
+            ;;
+        *)
+            log "Unknown operating system. Skipping compression."
+            echo "Unknown operating system. Skipping compression."
+            return 1
+            ;;
+    esac
+
+    if [ $? -eq 0 ]; then
+        log "Dump compressed successfully: $compressed_file"
+        echo "Dump compressed successfully: $compressed_file"
+        rm -rf "$V_PATH"
+        log "Original dump directory removed"
+    else
+        log "Error occurred during compression"
+        echo "Error occurred during compression"
+        return 1
+    fi
+}
+
+
 # Main script
 echo "Java Dump Utility"
 echo "================="
@@ -132,7 +176,7 @@ setup_environment
 echo "Dumps will be saved in: $V_PATH"
 
 # Validate required commands
-validate_commands
+#validate_commands
 
 log "Starting Java Dump Utility"
 
@@ -182,6 +226,10 @@ esac
 
 log "Dump process completed. Results are saved in $V_PATH"
 echo "Dump process completed. Results are saved in $V_PATH"
+
+# Compress the dump directory
+compress_dump
+
 echo "Press any key to exit..."
 read -n 1 -s -r -p ""
 log "Script execution finished"
