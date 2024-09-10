@@ -55,7 +55,7 @@ validate_commands() {
 # Function to validate PID
 validate_pid() {
     case "$1" in
-        ''|*[!0-9]*) 
+        ''|*[!0-9]*)
             log "Invalid PID: $1"
             log "Invalid PID. Please enter a valid process ID."
             return 1 ;;
@@ -106,10 +106,10 @@ get_process_info() {
     local pid=$1
     local output_file=$2
     local env=$(detect_environment)
-    
+
     echo "Process Information:" >> "$output_file"
     echo "=====================" >> "$output_file"
-    
+
     case "$env" in
         windows)
             powershell -Command "Get-Process -Id $pid | Format-List *" >> "$output_file"
@@ -124,7 +124,7 @@ get_process_info() {
             ps -M -p $pid >> "$output_file"
             ;;
         linux)
-            ps -p $pid -f >> "$output_file"
+            top -b -H -n 1 -p $pid >> "$output_file"
             echo -e "\nThread Information:" >> "$output_file"
             echo "====================" >> "$output_file"
             ps -T -p $pid >> "$output_file"
@@ -194,7 +194,7 @@ compress_dump() {
     local compressed_file
 
     echo "Compressing dump directory..."
-    
+
     case "$os_type" in
         Linux*|Darwin*)
             compressed_file="${V_PATH}.tar.gz"
