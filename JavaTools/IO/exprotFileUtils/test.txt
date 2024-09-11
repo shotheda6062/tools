@@ -1,6 +1,0 @@
-00001|Alice　　　　　|alice@example.c                  
-00002|Bob　　　　　　　|bob@example.com                  
-00003|Charlie　　　|charlie@example                  
-00001|Alice　　　　　|alice@example.c                  
-00002|Bob　　　　　　　|bob@example.com                  
-00003|Charlie　　　|charlie@example                  
