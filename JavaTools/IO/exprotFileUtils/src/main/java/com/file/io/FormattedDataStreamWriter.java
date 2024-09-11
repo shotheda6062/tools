@@ -14,13 +14,16 @@ public class FormattedDataStreamWriter extends OutputStream implements AutoClose
     private final Charset charset;
     private final int rowLength;
     private final Class<?> clazz;
+    private final String paddingChar ;
 
     public FormattedDataStreamWriter(Class<?> clazz, String fileName) throws IOException {
         this.clazz = clazz;
         RowFormat rowFormat = clazz.getAnnotation(RowFormat.class);
-        this.charset = Charset.forName(rowFormat != null ? rowFormat.charset() : "UTF-8");
-        this.rowLength = rowFormat != null ? rowFormat.rowLength() : -1;
+        assert rowFormat != null;
+        this.charset = Charset.forName(rowFormat.charset());
+        this.rowLength =  rowFormat.rowLength();
         this.bufferedOut = new BufferedOutputStream(new FileOutputStream(fileName, true), BUFFER_SIZE);
+        this.paddingChar = rowFormat.paddingChar();
     }
 
     @Override
@@ -67,16 +70,18 @@ public class FormattedDataStreamWriter extends OutputStream implements AutoClose
             }
         }
 
-        String rowData = rowBuilder.toString();
         if (rowLength > 0) {
-            if (rowData.length() > rowLength) {
-                rowData = rowData.substring(0, rowLength);
-            } else if (rowData.length() < rowLength) {
-                rowData = String.format("%-" + rowLength + "s", rowData);
+            if (rowBuilder.length() > rowLength) {
+                String rowData = rowBuilder.toString();
+                return rowData.substring(0, rowLength);
+            } else if (rowBuilder.length() < rowLength) {
+                while (rowBuilder.length() < rowLength) {
+                    rowBuilder.append(paddingChar);
+                }
             }
         }
 
-        return rowData;
+        return rowBuilder.toString();
     }
 
     private String formatValue(String value, int width, AlignmentType alignmentType, String paddingChar) {
