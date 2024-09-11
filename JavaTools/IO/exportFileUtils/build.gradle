@@ -1,0 +1,58 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+}
+
+group = 'com.file'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation platform('org.junit:junit-bom:5.9.1')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifactId = 'exportFileUtils'
+            from components.java
+            pom {
+                name = 'Export File Utils'
+                description = 'A utility library for exporting files'
+                url = 'https://github.com/yourusername/exprotFileUtils'
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'clarkeyeh'
+                        name = 'Clarke Yeh'
+                        email = 'shothead6062@gmail.com'
+                    }
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = 'projectLocal'
+            url = layout.buildDirectory.dir("repo")
+        }
+    }
+}

@@ -9,6 +9,6 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 public @interface RowFormat {
     String charset() default "UTF-8";
-    int rowLength() default -1; // -1 表示不限制長度
+    int rowLength() default -1;
     String paddingChar() default " ";
 }

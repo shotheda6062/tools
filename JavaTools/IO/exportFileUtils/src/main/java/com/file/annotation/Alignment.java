@@ -13,7 +13,7 @@ public @interface Alignment {
 
     AlignmentType align() default AlignmentType.LEFT;
     String paddingChar() default "";
-    String separator() default ""; // 新增：用於指定分隔符
-    int width() default 0; // 新增：用於指定字段寬度
+    String separator() default "";
+    int width() default 0;
 
 }
