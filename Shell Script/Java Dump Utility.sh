@@ -165,7 +165,7 @@ jcmd_dump() {
         echo "Collecting jcmd dump $i of $loops"
         jcmd $pid Thread.print > "$V_PATH/jcmd_thread_dump_$i.txt" 2>> "$LOG_FILE"
         get_process_info $pid "$V_PATH/jcmd_process_info_$i.txt"
-        show_progress 5
+        #show_progress 5
     done
     log "Completed jcmd dump"
     echo "jcmd Dump Finish"
@@ -181,7 +181,7 @@ jmap_dump() {
         log "Collecting heap dump $i of $loops"
         echo "Collecting heap dump $i of $loops"
         jmap -dump:file="$V_PATH/heap_dump_$i.hprof" $pid 2>> "$LOG_FILE"
-        show_progress 10
+        #show_progress 10
     done
     log "Completed jmap dump"
     echo "jmap Dump Finish"
